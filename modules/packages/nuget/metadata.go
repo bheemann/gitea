@@ -89,6 +89,11 @@ type nuspecPackage struct {
 			URL string `xml:"url,attr"`
 		} `xml:"repository"`
 		Dependencies struct {
+			Dependency []struct {
+				ID      string `xml:"id,attr"`
+				Version string `xml:"version,attr"`
+				Exclude string `xml:"exclude,attr,omitempty"`
+			} `xml:"dependency"`
 			Group []struct {
 				TargetFramework string `xml:"targetFramework,attr"`
 				Dependency      []struct {
@@ -181,6 +186,24 @@ func ParseNuspecMetaData(r io.Reader) (*Package, error) {
 			m.Dependencies[group.TargetFramework] = deps
 		}
 	}
+
+	var directDeps []Dependency
+
+	for _, directDep := range p.Metadata.Dependencies.Dependency {
+		if directDep.ID == "" {
+			continue
+		}
+
+		directDeps = append(directDeps, Dependency{
+			ID:      directDep.ID,
+			Version: directDep.Version,
+		})
+	}
+
+	if len(directDeps) > 0 {
+		m.Dependencies[""] = directDeps
+	}
+
 	return &Package{
 		PackageType: packageType,
 		ID:          p.Metadata.ID,
